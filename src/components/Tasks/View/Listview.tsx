@@ -1,192 +1,300 @@
 import { useState } from "react";
-import { Task, Category } from "@Types/index";
+import { motion } from "framer-motion";
+import { Task } from "@Types/index";
+import { useData } from "@Contexts/DataContext";
 import { TaskCard } from "@Tasks/TaskCard";
-import { Button } from "@Components/Shadcn/button";
-import {
-  startOfWeek,
-  endOfWeek,
-  eachDayOfInterval,
-  format,
-  isSameDay,
-  parseISO,
-  addWeeks,
-  subWeeks,
-  isToday,
-} from "date-fns";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { format, isToday, isTomorrow, isPast, parseISO } from "date-fns";
+import { ChevronRight } from "lucide-react";
 import { cn } from "@Lib/utils";
 
-interface WeekViewProps {
+interface TaskListProps {
   tasks: Task[];
-  categories: Category[];
+  showCompleted?: boolean;
   setEditingTask: (task: Task) => void;
 }
 
-export function WeekView({ tasks, categories, setEditingTask }: WeekViewProps) {
-  const [currentWeekStart, setCurrentWeekStart] = useState(
-    startOfWeek(new Date(), { weekStartsOn: 1 }) // Luni = start
-  );
+export function TaskList({
+  tasks,
+  showCompleted = true,
+  setEditingTask,
+}: TaskListProps) {
+  const { categories } = useData();
+  const [showCompletedSection, setShowCompletedSection] = useState(true);
+  const [showCanceledSection, setShowCanceledSection] = useState(false);
 
-  const weekDays = eachDayOfInterval({
-    start: currentWeekStart,
-    end: endOfWeek(currentWeekStart, { weekStartsOn: 1 }),
+  // Separate tasks by status
+  const activeTasks = tasks.filter(
+    (t) => t.status !== "completed" && t.status !== "canceled"
+  );
+  const completedTasks = tasks.filter((t) => t.status === "completed");
+  const canceledTasks = tasks.filter((t) => t.status === "canceled");
+
+  const groupTasksByDate = (taskList: Task[]) => {
+    return taskList.reduce((acc, task) => {
+      if (!task.due_date) {
+        if (!acc["No Due Date"]) acc["No Due Date"] = [];
+        acc["No Due Date"].push(task);
+        return acc;
+      }
+
+      const dueDate = parseISO(task.due_date);
+      let dateKey: string;
+
+      if (isToday(dueDate)) {
+        dateKey = "Today";
+      } else if (isTomorrow(dueDate)) {
+        dateKey = "Tomorrow";
+      } else if (isPast(dueDate) && task.status === "upcoming") {
+        dateKey = "Overdue";
+      } else {
+        dateKey = format(dueDate, "EEEE - dd MMM yyyy");
+      }
+
+      if (!acc[dateKey]) acc[dateKey] = [];
+      acc[dateKey].push(task);
+      return acc;
+    }, {} as Record<string, Task[]>);
+  };
+
+  const activeGrouped = groupTasksByDate(activeTasks);
+  const sortedActiveGroups = Object.entries(activeGrouped).sort(([a], [b]) => {
+    const order = ["Overdue", "Today", "Tomorrow"];
+    const aIndex = order.indexOf(a);
+    const bIndex = order.indexOf(b);
+    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+    if (aIndex !== -1) return -1;
+    if (bIndex !== -1) return 1;
+    return 0;
   });
 
-  const getTasksForDay = (day: Date) => {
-    return tasks.filter((task) => {
-      if (!task.due_date) return false;
-      return isSameDay(parseISO(task.due_date), day);
+  if (tasks.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className="text-center py-12 glass-card rounded-lg border border-white/10"
+      >
+        <p className="text-gray-400">No tasks yet. Create your first task!</p>
+      </motion.div>
+    );
+  }
+
+  // Dacă showCompleted = false, verificăm dacă avem canceled sau completed tasks
+  if (!showCompleted) {
+    // Detectăm ce tip de tasks avem
+    const hasCanceled = canceledTasks.length > 0;
+    const hasCompleted = completedTasks.length > 0;
+
+    // Decidem ce să afișăm bazat pe ce avem
+    const tasksToShow = hasCanceled ? canceledTasks : completedTasks;
+    const viewTitle = hasCanceled ? "Canceled" : "Completed";
+
+    const groupedTasks = groupTasksByDate(tasksToShow);
+    const sortedGroups = Object.entries(groupedTasks).sort(([a], [b]) => {
+      const order = ["Today", "Tomorrow"];
+      const aIndex = order.indexOf(a);
+      const bIndex = order.indexOf(b);
+      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      return 0;
     });
-  };
 
-  const handlePreviousWeek = () => {
-    setCurrentWeekStart(subWeeks(currentWeekStart, 1));
-  };
+    if (sortedGroups.length === 0) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="text-center py-12 glass-card rounded-lg border border-white/10"
+        >
+          <p className="text-gray-400">No {viewTitle.toLowerCase()} tasks.</p>
+        </motion.div>
+      );
+    }
 
-  const handleNextWeek = () => {
-    setCurrentWeekStart(addWeeks(currentWeekStart, 1));
-  };
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="space-y-6"
+      >
+        {sortedGroups.map(([date, groupTasks], groupIndex) => (
+          <motion.div
+            key={date}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: groupIndex * 0.1 }}
+          >
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                {date}
+              </h2>
+              <div className="h-px flex-1 bg-white/5" />
+              <span className="text-xs text-gray-500">
+                {groupTasks.length} task{groupTasks.length !== 1 ? "s" : ""}
+              </span>
+            </div>
 
-  const handleToday = () => {
-    setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
-  };
+            <div className="space-y-1">
+              {groupTasks.map((task, index) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  category={categories.find((c) => c.id === task.category_id)}
+                  onEdit={() => setEditingTask(task)}
+                  variant="list"
+                  index={index}
+                />
+              ))}
+            </div>
+          </motion.div>
+        ))}
+      </motion.div>
+    );
+  }
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Week Navigation */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 md:p-4 border-b border-white/10 gap-3">
-        <div className="flex items-center gap-2 justify-center sm:justify-start">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handlePreviousWeek}
-            className="text-gray-400 hover:text-white h-8 w-8 p-0"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </Button>
-
-          <div className="text-center min-w-[180px]">
-            <h2 className="text-base md:text-lg font-semibold text-white">
-              {format(currentWeekStart, "MMMM yyyy")}
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+      className="space-y-6"
+    >
+      {/* Active Tasks */}
+      {sortedActiveGroups.map(([date, groupTasks], groupIndex) => (
+        <motion.div
+          key={date}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: groupIndex * 0.1 }}
+        >
+          <div className="flex items-center gap-2 mb-2 px-1">
+            <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+              {date}
             </h2>
-            <p className="text-xs md:text-sm text-gray-400">
-              {format(currentWeekStart, "dd MMM")} -{" "}
-              {format(
-                endOfWeek(currentWeekStart, { weekStartsOn: 1 }),
-                "dd MMM"
-              )}
-            </p>
+            <div className="h-px flex-1 bg-white/50" />
+            <span className="text-xs text-gray-500">
+              {groupTasks.length} task{groupTasks.length !== 1 ? "s" : ""}
+            </span>
           </div>
 
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleNextWeek}
-            className="text-gray-400 hover:text-white h-8 w-8 p-0"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </Button>
-        </div>
+          <div className="space-y-1">
+            {groupTasks.map((task, index) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                category={categories.find((c) => c.id === task.category_id)}
+                onEdit={() => setEditingTask(task)}
+                index={index}
+              />
+            ))}
+          </div>
+        </motion.div>
+      ))}
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleToday}
-          className="text-blue-400 hover:text-blue-300"
+      {/* Completed Tasks Section */}
+      {showCompleted && completedTasks.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: sortedActiveGroups.length * 0.1 }}
+          className="pt-4 border-t border-white/5"
         >
-          Today
-        </Button>
-      </div>
+          <button
+            onClick={() => setShowCompletedSection(!showCompletedSection)}
+            className="flex items-center gap-2 mb-2 px-1 hover:text-white text-gray-400 transition-colors w-full"
+          >
+            <ChevronRight
+              className={cn(
+                "w-4 h-4 transition-transform",
+                showCompletedSection && "rotate-90"
+              )}
+            />
+            <h2 className="text-sm font-semibold uppercase tracking-wider">
+              Completed
+            </h2>
+            <div className="h-px flex-1 bg-white/5" />
+            <span className="text-xs text-gray-500">
+              {completedTasks.length}
+            </span>
+          </button>
 
-      {/* Scroll Hint on Mobile */}
-      <div className="md:hidden text-center py-2 text-xs text-gray-400 border-b border-white/10">
-        👈 Swipe to see all days 👉
-      </div>
+          {showCompletedSection && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-1"
+            >
+              {completedTasks.map((task, index) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  category={categories.find((c) => c.id === task.category_id)}
+                  onEdit={() => setEditingTask(task)}
+                  index={index}
+                />
+              ))}
+            </motion.div>
+          )}
+        </motion.div>
+      )}
 
-      {/* Week Grid - Horizontal scroll on mobile, grid on desktop */}
-      <div className="flex-1 overflow-x-auto overflow-y-hidden md:overflow-x-hidden">
-        <div className="flex md:grid md:grid-cols-7 gap-2 p-3 md:p-4 min-w-max md:min-w-0 h-full">
-          {weekDays.map((day, index) => {
-            const dayTasks = getTasksForDay(day);
-            const isCurrentDay = isToday(day);
+      {/* Canceled Tasks Section */}
+      {showCompleted && canceledTasks.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            duration: 0.3,
+            delay: (sortedActiveGroups.length + 1) * 0.1,
+          }}
+          className="pt-4 border-t border-white/5"
+        >
+          <button
+            onClick={() => setShowCanceledSection(!showCanceledSection)}
+            className="flex items-center gap-2 mb-2 px-1 hover:text-white text-gray-400 transition-colors w-full"
+          >
+            <ChevronRight
+              className={cn(
+                "w-4 h-4 transition-transform",
+                showCanceledSection && "rotate-90"
+              )}
+            />
+            <h2 className="text-sm font-semibold uppercase tracking-wider">
+              Canceled
+            </h2>
+            <div className="h-px flex-1 bg-white/5" />
+            <span className="text-xs text-gray-500">
+              {canceledTasks.length}
+            </span>
+          </button>
 
-            return (
-              <div
-                key={index}
-                className="flex flex-col border-2 rounded-lg overflow-hidden flex-shrink-0 w-[85vw] sm:w-64 md:w-auto"
-                style={{
-                  borderColor: isCurrentDay
-                    ? "rgb(59 130 246)"
-                    : "rgba(255,255,255,0.1)",
-                  backgroundColor: isCurrentDay
-                    ? "rgba(59, 130, 246, 0.05)"
-                    : "rgba(15, 23, 42, 0.3)",
-                }}
-              >
-                {/* Day Header */}
-                <div
-                  className={cn(
-                    "p-3 text-center border-b flex-shrink-0",
-                    isCurrentDay
-                      ? "bg-blue-500/20 border-blue-500/30"
-                      : "bg-white/5 border-white/10"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "text-xs uppercase tracking-wider font-semibold",
-                      isCurrentDay ? "text-blue-400" : "text-gray-500"
-                    )}
-                  >
-                    {format(day, "EEE")}
-                  </div>
-                  <div
-                    className={cn(
-                      "text-xl md:text-2xl font-bold mt-1",
-                      isCurrentDay ? "text-blue-400" : "text-white"
-                    )}
-                  >
-                    {format(day, "d")}
-                  </div>
-                  {dayTasks.length > 0 && (
-                    <div
-                      className={cn(
-                        "text-xs mt-1 px-2 py-0.5 rounded-full inline-block",
-                        isCurrentDay
-                          ? "bg-blue-500/30 text-blue-300"
-                          : "bg-white/10 text-gray-400"
-                      )}
-                    >
-                      {dayTasks.length} task{dayTasks.length !== 1 ? "s" : ""}
-                    </div>
-                  )}
-                </div>
-
-                {/* Tasks for this day */}
-                <div className="flex-1 p-2 space-y-2 overflow-y-auto min-h-0">
-                  {dayTasks.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-gray-500 text-xs">
-                      No tasks
-                    </div>
-                  ) : (
-                    dayTasks.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        category={categories.find(
-                          (c) => c.id === task.category_id
-                        )}
-                        onEdit={() => setEditingTask(task)}
-                        variant="week"
-                      />
-                    ))
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+          {showCanceledSection && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.2 }}
+              className="space-y-1"
+            >
+              {canceledTasks.map((task, index) => (
+                <TaskCard
+                  key={task.id}
+                  task={task}
+                  category={categories.find((c) => c.id === task.category_id)}
+                  onEdit={() => setEditingTask(task)}
+                  index={index}
+                />
+              ))}
+            </motion.div>
+          )}
+        </motion.div>
+      )}
+    </motion.div>
   );
 }
