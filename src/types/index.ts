@@ -33,3 +33,13 @@ export interface UserProfile {
 export interface TopCategories extends Category {
   count: number;
 }
+
+export interface CategoryStats {
+  id: string;
+  name: string;
+  color: string;
+  total: number;
+  completed: number;
+  active: number;
+  completionRate: number;
+}
