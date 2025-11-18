@@ -1,10 +1,37 @@
 import { useState } from "react";
 import { MainSidebar } from "@Components/Layout/MainSidebar";
 import { Header } from "@Components/Header";
+import { HomeSection } from "@Components/Home/HomeSection";
+import { TasksSection } from "@Components/Tasks/TasksSection";
+import { ReportsSection } from "@Components/Reports/ReportsSection";
+import { GuideSection } from "@Components/Guide/GuideSection";
 
 export function Dashboard() {
   const [activeSection, setActiveSection] = useState<string>("home");
+  const [taskFilter, setTaskFilter] = useState<string>("all");
   const [isMainSidebarOpen, setIsMainSidebarOpen] = useState(false);
+
+  const handleNavigate = (section: string, filter?: string) => {
+    setActiveSection(section);
+    if (section === "tasks" && filter) {
+      setTaskFilter(filter);
+    }
+  };
+
+  const renderSection = () => {
+    switch (activeSection) {
+      case "home":
+        return <HomeSection onNavigate={handleNavigate} />;
+      case "tasks":
+        return <TasksSection initialFilter={taskFilter} />;
+      case "reports":
+        return <ReportsSection />;
+      case "guide":
+        return <GuideSection />;
+      default:
+        return <HomeSection onNavigate={handleNavigate} />;
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-950">
@@ -18,7 +45,7 @@ export function Dashboard() {
           onClose={() => setIsMainSidebarOpen(false)}
         />
 
-        <main className="flex-1 overflow-y-auto"></main>
+        <main className="flex-1 overflow-y-auto">{renderSection()}</main>
       </div>
     </div>
   );
