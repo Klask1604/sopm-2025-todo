@@ -1,10 +1,23 @@
 import { useState } from "react";
+import { motion, AnimatePresence, Transition } from "framer-motion";
 import { MainSidebar } from "@Components/Layout/MainSidebar";
 import { Header } from "@Components/Header";
 import { HomeSection } from "@Components/Home/HomeSection";
 import { TasksSection } from "@Components/Tasks/TasksSection";
 import { ReportsSection } from "@Components/Reports/ReportsSection";
 import { GuideSection } from "@Components/Guide/GuideSection";
+
+const pageVariants = {
+  initial: { opacity: 0, x: -20 },
+  animate: { opacity: 1, x: 0 },
+  exit: { opacity: 0, x: 20 },
+};
+
+const pageTransition: Transition = {
+  type: "tween",
+  ease: "easeInOut",
+  duration: 0.3,
+};
 
 export function Dashboard() {
   const [activeSection, setActiveSection] = useState<string>("home");
@@ -45,7 +58,21 @@ export function Dashboard() {
           onClose={() => setIsMainSidebarOpen(false)}
         />
 
-        <main className="flex-1 overflow-y-auto">{renderSection()}</main>
+        <main className="flex-1 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeSection}
+              variants={pageVariants}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              transition={pageTransition}
+              className="h-full"
+            >
+              {renderSection()}
+            </motion.div>
+          </AnimatePresence>
+        </main>
       </div>
     </div>
   );
