@@ -1,4 +1,4 @@
-import { ListTodo, X } from "lucide-react";
+import { Home, ListTodo, BarChart3, BookOpen, X } from "lucide-react";
 import { cn } from "@Lib/utils";
 import { Button } from "@Components/Shadcn/button";
 
@@ -9,7 +9,12 @@ interface MainSidebarProps {
   onClose: () => void;
 }
 
-const menuItems = [{ id: "tasks", label: "Tasks", icon: ListTodo }];
+const menuItems = [
+  { id: "home", label: "Home", icon: Home },
+  { id: "tasks", label: "Tasks", icon: ListTodo },
+  { id: "reports", label: "Reports", icon: BarChart3 },
+  { id: "guide", label: "Guide", icon: BookOpen },
+];
 
 export function MainSidebar({
   activeSection,
