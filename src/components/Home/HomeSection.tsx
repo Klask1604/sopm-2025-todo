@@ -1,14 +1,18 @@
 import { useData } from "@Contexts/DataContext";
+
 import { Inbox, Calendar, CheckCircle2, Clock } from "lucide-react";
 import { isToday, isTomorrow, isPast } from "date-fns";
+import { TopCategories } from "./TopCategories";
+import type { TopCategories as TopCategoriesType } from "@/types";
 import { QuickStats } from "./QuickStats";
+import { QuickTips } from "./QuickTips";
 import { TomorrowPreview } from "./TomorrowPreview";
 interface HomeSectionProps {
   onNavigate: (section: string, filter?: string) => void;
 }
 
 export function HomeSection({ onNavigate }: HomeSectionProps) {
-  const { tasks } = useData();
+  const { tasks, categories } = useData();
 
   const stats = {
     total: tasks.filter(
@@ -75,6 +79,19 @@ export function HomeSection({ onNavigate }: HomeSectionProps) {
     },
   ];
 
+  const topCategories: TopCategoriesType[] = categories
+    .map((cat) => ({
+      ...cat,
+      count: tasks.filter(
+        (t) =>
+          t.category_id === cat.id &&
+          (t.status === "upcoming" || t.status === "overdue")
+      ).length,
+    }))
+    .filter((cat) => cat.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
       <div className="mb-8">
@@ -85,6 +102,10 @@ export function HomeSection({ onNavigate }: HomeSectionProps) {
       </div>
 
       <QuickStats quickActions={quickActions} />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TopCategories topCategories={topCategories} onNavigate={onNavigate} />
+        <QuickTips onNavigate={onNavigate} />
+      </div>
 
       <TomorrowPreview stats={stats} onNavigate={onNavigate} />
     </div>
