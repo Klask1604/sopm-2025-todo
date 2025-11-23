@@ -30,3 +30,6 @@ export interface UserProfile {
   phone_number?: string;
   created_at: string;
 }
+export interface TopCategories extends Category {
+  count: number;
+}
