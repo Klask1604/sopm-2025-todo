@@ -3,7 +3,7 @@ import { motion, AnimatePresence, Transition } from "framer-motion";
 import { MainSidebar } from "@Components/Layout/MainSidebar";
 import { Header } from "@Components/Header";
 import { HomeSection } from "@Components/Home/HomeSection";
-import { TasksSection } from "@Components/Tasks/TasksSection";
+import { TasksSection } from "@/components/Tasks/TasksSection";
 import { ReportsSection } from "@Components/Reports/ReportsSection";
 import { GuideSection } from "@Components/Guide/GuideSection";
 
