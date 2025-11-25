@@ -1,5 +1,4 @@
 import { Task, Category } from "../../../types";
-import { useData } from "../../../contexts/DataContext";
 import { TaskCard } from "../TaskCard";
 import { isToday, isPast, parseISO } from "date-fns";
 import { cn } from "../../../lib/utils";
@@ -57,8 +56,6 @@ export function KanbanView({
   categories,
   setEditingTask,
 }: KanbanViewProps) {
-  const { updateTask } = useData();
-
   const getColumnForTask = (task: Task): KanbanColumn => {
     if (task.status === "completed") return "completed";
 

@@ -84,7 +84,6 @@ export function TaskList({
   if (!showCompleted) {
     // Detectăm ce tip de tasks avem
     const hasCanceled = canceledTasks.length > 0;
-    const hasCompleted = completedTasks.length > 0;
 
     // Decidem ce să afișăm bazat pe ce avem
     const tasksToShow = hasCanceled ? canceledTasks : completedTasks;

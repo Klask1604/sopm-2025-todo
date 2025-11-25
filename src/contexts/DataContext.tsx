@@ -39,7 +39,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({
   const [tasks, setTasks] = useState<Task[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error] = useState<string | null>(null);
 
   const ensureDefaultCategory = async (userId: string) => {
     console.log("🔍 Checking for default category...");

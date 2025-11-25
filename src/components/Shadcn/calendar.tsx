@@ -1,43 +1,54 @@
-import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, getDay } from "date-fns"
-import { cn } from "@/lib/utils"
-import { Button } from "./button"
+import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  format,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  isSameDay,
+  addMonths,
+  subMonths,
+  getDay,
+} from "date-fns";
+import { cn } from "@/lib/utils";
+import { Button } from "./button";
 
 interface CalendarProps {
-  selected?: Date
-  onSelect?: (date: Date) => void
-  className?: string
+  selected?: Date;
+  onSelect?: (date: Date) => void;
+  className?: string;
 }
 
 export function Calendar({ selected, onSelect, className }: CalendarProps) {
-  const [currentMonth, setCurrentMonth] = React.useState(selected || new Date())
+  const [currentMonth, setCurrentMonth] = React.useState(
+    selected || new Date()
+  );
 
-  const monthStart = startOfMonth(currentMonth)
-  const monthEnd = endOfMonth(currentMonth)
-  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd })
+  const monthStart = startOfMonth(currentMonth);
+  const monthEnd = endOfMonth(currentMonth);
+  const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
   // Get first day of week for the month (0 = Sunday, 1 = Monday, etc.)
-  const firstDayOfWeek = getDay(monthStart)
-  
+  const firstDayOfWeek = getDay(monthStart);
+
   // Create array with empty cells for days before month starts
-  const emptyDays = Array(firstDayOfWeek).fill(null)
+  const emptyDays = Array(firstDayOfWeek).fill(null);
 
   const handlePreviousMonth = () => {
-    setCurrentMonth(subMonths(currentMonth, 1))
-  }
+    setCurrentMonth(subMonths(currentMonth, 1));
+  };
 
   const handleNextMonth = () => {
-    setCurrentMonth(addMonths(currentMonth, 1))
-  }
+    setCurrentMonth(addMonths(currentMonth, 1));
+  };
 
   const handleDateClick = (day: Date) => {
     if (onSelect) {
-      onSelect(day)
+      onSelect(day);
     }
-  }
+  };
 
-  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+  const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
   return (
     <div className={cn("p-3", className)}>
@@ -79,9 +90,9 @@ export function Calendar({ selected, onSelect, className }: CalendarProps) {
           <div key={`empty-${index}`} className="h-9" />
         ))}
         {daysInMonth.map((day) => {
-          const isSelected = selected && isSameDay(day, selected)
-          const isToday = isSameDay(day, new Date())
-          
+          const isSelected = selected && isSameDay(day, selected);
+          const isToday = isSameDay(day, new Date());
+
           return (
             <button
               key={day.toString()}
@@ -96,10 +107,9 @@ export function Calendar({ selected, onSelect, className }: CalendarProps) {
             >
               {format(day, "d")}
             </button>
-          )
+          );
         })}
       </div>
     </div>
-  )
+  );
 }
-
